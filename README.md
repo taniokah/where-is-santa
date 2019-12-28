@@ -286,6 +286,77 @@ indexfiles("santa-search", directory, 100, 1000)
 サンタの画像の特徴ベクトルを用いて elasticsearch のインデックスを作りました。いよいよ、この画像の中から真のサンタ "My Santa Claus" を見つけましょう。今回の検索クエリは、__画像__です。試しに、ダウンロードした中から1つ画像を選んで、クエリにしてみましょう。
 
 ```Python
+def searchimg(indexname, filename, num=10, topk=10, scoretype='dot', scale=1.0, partition=1):
+    plt.figure(figsize=(20, 10))
+    
+    imgs = showpartimg(filename, "query", 1, partition, scale)
+    plt.show()
+
+    reslist = []
+    for img in imgs:
+        results = predictimg(img, num, scale)
+        for result in results:
+            print(result)
+        print()
+        res = search(indexname, results, num, topk, scoretype)
+        reslist.append(res)
+    return reslist
+
+def search(indexname, synsets, num, topk, scoretype='dot', disp=True):
+    if scoretype == 'vcos':
+        inline = {}
+        for synset in synsets:
+            score = synset[2]
+            if score <= 0.0:
+                continue
+            wnid = synset[0]
+            if wnid not in wnidmap.keys():
+                continue
+            id = wnidmap[wnid]
+            inline[str(id)] = float(score)
+        if inline == {}: 
+            print("Got " +  str(0) + " Hits:")
+            return
+        #print('wnidmap = ' + str(wnidmap))
+        #print('inline = ' + str(inline))
+
+        b = {
+            "size": topk,
+            "query": {
+              "script_score": {
+                "query": {"match_all": {}}, 
+                "script": {
+                  "source": "cosineSimilaritySparse(params.s, doc['s']) + 0.01", 
+                  "params": {
+                      's': {}
+                  }
+                }
+              }
+        }}
+        b['query']['script_score']['script']['params']['s'] = inline
+        res = es.search(index=indexname, body=b)
+        #print(str(b))
+
+        if disp==True:
+            print("Got " +  str(res['hits']['total']['value']) + " Hits:")
+            topres = res['hits']['hits'][0:topk]
+            for hit in topres:
+                print(str(hit["_id"]) + " " + str(hit["_source"]["f"]) + " "  + str(hit["_score"]))
+            plt.figure(figsize=(20, 10))
+
+            for i in range(len(topres)):
+                hit = topres[i]
+                row = 5
+                col = int(topk / 5)
+                if i >= 25:
+                    break
+                showimg(hit["_source"]["f"], hit["_id"], i+1, col, row)
+            plt.show()
+        
+        return res
+```
+
+```Python
 disp = True
 filename = "google_images/000001.jpg"
 _ = searchimg('santa-search', filename, 10, 10, 'vcos', 1.0, 1)
