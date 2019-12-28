@@ -6,6 +6,27 @@ This repo is a project for the advent calendar of information retrieval and sear
 
 # Crawler for Santa
 
+まずは、サンタの情報を入手するためのクローラを用意します。クローラには、icrawler を使います。Google、Bing、Baidu などの画像検索サイトからダウンロードすることができます。
+
+```
+!pip install icrawler
+```
+
+各サイトで 1,000 件ずつダウンロードするなら、以下のようにします。
+
+```
+from icrawler.builtin import BaiduImageCrawler, BingImageCrawler, GoogleImageCrawler
+
+crawler = GoogleImageCrawler(storage={"root_dir": "google_images"}, downloader_threads=4)
+crawler.crawl(keyword="Santa", offset=0, max_num=1000)
+
+bing_crawler = BingImageCrawler(storage={'root_dir': 'bing_images'}, downloader_threads=4)
+bing_crawler.crawl(keyword='Santa', filters=None, offset=0, max_num=1000)
+
+baidu_crawler = BaiduImageCrawler(storage={'root_dir': 'baidu_images'})
+baidu_crawler.crawl(keyword='Santa', offset=0, max_num=1000)
+```
+
 # Indexer for Santa
 
 # Searcher for Santa
